@@ -38,6 +38,8 @@ static JGCLogManager *sharedInstance = nil;
 {
     if (![self isRunFromXcode]) {
         NSLog(@"Run from Xcode: NO");
+        NSLog(@"Log redirection enabled.");
+
         [self removeLogFile];
         [self redirectLogToDocument];
     }
@@ -64,9 +66,11 @@ static JGCLogManager *sharedInstance = nil;
 {
     MFMailComposeViewController *mailComposerVC = [[MFMailComposeViewController alloc ]init];
     mailComposerVC.mailComposeDelegate = self; // Extremely important to set the --mailComposeDelegate-- property, NOT the --delegate-- property
-    [mailComposerVC setToRecipients:@[@"javilin.garcia@gmail.com"]];
-    [mailComposerVC setSubject:@"Log"];
-    [mailComposerVC setMessageBody:@"\n\n\n-----------------------------------------------\nThe console log has been attached.\n-----------------------------------------------" isHTML:false];
+    [mailComposerVC setToRecipients:@[]];//add default recipients
+    NSString *bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"];
+    [mailComposerVC setSubject:[NSString stringWithFormat:@"%@ Log",bundleName]];
+    NSString *message = [NSString stringWithFormat:@"\n\n\n-----------------------------------------------\nThe log of %@ has been attached.\n-----------------------------------------------", bundleName];
+    [mailComposerVC setMessageBody:message isHTML:false];
     
     //Attached
     NSData *data = [[NSData alloc] initWithContentsOfFile: [[JGCLogManager sharedInstance] getLogFilePath]];
@@ -224,7 +228,8 @@ static JGCLogManager *sharedInstance = nil;
 - (void)redirectLogToDocument
 {
     NSString *documentsDirectory = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true).firstObject;
-    NSString *pathForLog = [NSString stringWithFormat:@"%@/iOS_LOG.txt",documentsDirectory];
+    NSString *bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"];
+    NSString *pathForLog = [NSString stringWithFormat:@"%@/%@_LOG.txt",documentsDirectory, bundleName];
 
     freopen([pathForLog cStringUsingEncoding:NSASCIIStringEncoding],"a+",stderr);
     freopen([pathForLog cStringUsingEncoding:NSASCIIStringEncoding],"a+",stdin);
@@ -251,14 +256,16 @@ static JGCLogManager *sharedInstance = nil;
 - (NSString *)getLogFilePath
 {
     NSString *documentsDirectory = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true).firstObject;
-    NSString *pathForLog = [NSString stringWithFormat:@"%@/iOS_LOG.txt",documentsDirectory];
-
+    NSString *bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"];
+    NSString *pathForLog = [NSString stringWithFormat:@"%@/%@_LOG.txt",documentsDirectory, bundleName];
+    
     return pathForLog;
 }
 
 - (NSString *)getLogFileName
 {
-    return [NSString stringWithFormat:@"iOS_LOG.txt"];
+    NSString *bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"];
+    return [NSString stringWithFormat:@"%@_LOG.txt", bundleName];
 }
 
 - (BOOL)isRunFromXcode

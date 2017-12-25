@@ -10,6 +10,8 @@ import UIKit
 
 class ViewController: UIViewController, JGCLogConsoleDelegate {
 
+    @IBOutlet weak var label: UILabel!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -29,9 +31,14 @@ class ViewController: UIViewController, JGCLogConsoleDelegate {
             consoleButton.superview?.addConstraints(constraints as! [NSLayoutConstraint])
             
             view.bringSubview(toFront: consoleButton)
+            
+            label.isHidden = true
+        }
+        else{
+            label.isHidden = false
         }
         
-        print("print message")
+        print("viewDidLoad()")
     }
     
     // MARK: - JGCLogConsoleDelegate
