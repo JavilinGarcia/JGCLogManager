@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		595AF0DF21D2D44000CEE1D0 /* Reachability.m in Sources */ = {isa = PBXBuildFile; fileRef = 595AF0DE21D2D44000CEE1D0 /* Reachability.m */; };
 		59F242A51FEFC7B9003BF6E4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F242A41FEFC7B9003BF6E4 /* AppDelegate.swift */; };
 		59F242A71FEFC7B9003BF6E4 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F242A61FEFC7B9003BF6E4 /* ViewController.swift */; };
 		59F242AA1FEFC7B9003BF6E4 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 59F242A81FEFC7B9003BF6E4 /* Main.storyboard */; };
@@ -16,6 +17,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		595AF0DD21D2D44000CEE1D0 /* Reachability.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Reachability.h; sourceTree = "<group>"; };
+		595AF0DE21D2D44000CEE1D0 /* Reachability.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Reachability.m; sourceTree = "<group>"; };
 		59F242A11FEFC7B9003BF6E4 /* JGCLogConsoleDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JGCLogConsoleDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		59F242A41FEFC7B9003BF6E4 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		59F242A61FEFC7B9003BF6E4 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -75,6 +78,8 @@
 			children = (
 				59F242B91FEFCD0B003BF6E4 /* JGCLogManager.h */,
 				59F242BA1FEFCD0B003BF6E4 /* JGCLogManager.m */,
+				595AF0DD21D2D44000CEE1D0 /* Reachability.h */,
+				595AF0DE21D2D44000CEE1D0 /* Reachability.m */,
 			);
 			path = JGCLogManager;
 			sourceTree = "<group>";
@@ -106,12 +111,21 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0920;
-				LastUpgradeCheck = 0920;
+				LastUpgradeCheck = 1010;
 				ORGANIZATIONNAME = "Javier Garcia Castro";
 				TargetAttributes = {
 					59F242A01FEFC7B9003BF6E4 = {
 						CreatedOnToolsVersion = 9.2;
+						LastSwiftMigration = 1010;
 						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.AccessWiFi = {
+								enabled = 0;
+							};
+							com.apple.ApplicationGroups.iOS = {
+								enabled = 0;
+							};
+						};
 					};
 				};
 			};
@@ -153,6 +167,7 @@
 			files = (
 				59F242A71FEFC7B9003BF6E4 /* ViewController.swift in Sources */,
 				59F242A51FEFC7B9003BF6E4 /* AppDelegate.swift in Sources */,
+				595AF0DF21D2D44000CEE1D0 /* Reachability.m in Sources */,
 				59F242BB1FEFCD0B003BF6E4 /* JGCLogManager.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -193,6 +208,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -200,6 +216,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -250,6 +267,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -257,6 +275,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -298,7 +317,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "/Users/Javi/JGCWorkspace/JGCLogManager/JGCLogConsoleDemo/JGCLogConsoleDemo/JGCLogConsoleDemo-Bridging-Header.h";
 				SWIFT_OBJC_INTERFACE_HEADER_NAME = "JGCLogConsoleDemo-Swift.h";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
@@ -316,7 +335,7 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "/Users/Javi/JGCWorkspace/JGCLogManager/JGCLogConsoleDemo/JGCLogConsoleDemo/JGCLogConsoleDemo-Bridging-Header.h";
 				"SWIFT_OBJC_BRIDGING_HEADER[arch=*]" = "";
 				SWIFT_OBJC_INTERFACE_HEADER_NAME = "JGCLogConsoleDemo-Swift.h";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;

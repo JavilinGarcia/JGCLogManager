@@ -20,7 +20,6 @@
 
 @property(nonatomic, strong) NSString *logConsole;
 @property(nonatomic, strong) NSString *stringFromFile;
-
 @property(nonatomic, strong) id<JGCLogConsoleDelegate> logConsoleDelegate;
 
 - (NSString *)stringForKey:(NSString *)key dictionary:(NSDictionary *)dictionary;
@@ -36,5 +35,15 @@
 - (BOOL)isRunFromXcode;
 - (void)removeLogFile;
 - (void)readFromFile;
+
++ (NSString *)totalDiskSpace;
++ (NSString *)freeDiskSpace;
++ (NSString *)usedDiskSpace;
+
++ (CGFloat)totalDiskSpaceInBytes;
++ (CGFloat)freeDiskSpaceInBytes;
++ (CGFloat)usedDiskSpaceInBytes;
+
++ (NSString *)getNetworkType;
 
 @end

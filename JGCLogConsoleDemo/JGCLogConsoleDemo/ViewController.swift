@@ -23,14 +23,14 @@ class ViewController: UIViewController, JGCLogConsoleDelegate {
             view.addSubview(consoleButton)
             
             let constraints = NSMutableArray()
-            constraints.addObjects(from: NSLayoutConstraint.constraints(withVisualFormat: "H:|-10-[consoleButton]", options: NSLayoutFormatOptions(rawValue:0), metrics: nil, views:["consoleButton":consoleButton]))
-            constraints.addObjects(from: NSLayoutConstraint.constraints(withVisualFormat: "V:[consoleButton]-10-|" , options: NSLayoutFormatOptions(rawValue:0), metrics: nil, views: ["consoleButton":consoleButton]))
+            constraints.addObjects(from: NSLayoutConstraint.constraints(withVisualFormat: "H:|-10-[consoleButton]", options: NSLayoutConstraint.FormatOptions(rawValue:0), metrics: nil, views:["consoleButton":consoleButton]))
+            constraints.addObjects(from: NSLayoutConstraint.constraints(withVisualFormat: "V:[consoleButton]-10-|" , options: NSLayoutConstraint.FormatOptions(rawValue:0), metrics: nil, views: ["consoleButton":consoleButton]))
             constraints.add(NSLayoutConstraint.init(item: consoleButton, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .height, multiplier: 1.0, constant: 50.0))
             constraints.add(NSLayoutConstraint.init(item: consoleButton, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .width, multiplier: 1.0, constant: 100.0))
             
             consoleButton.superview?.addConstraints(constraints as! [NSLayoutConstraint])
             
-            view.bringSubview(toFront: consoleButton)
+            view.bringSubviewToFront(consoleButton)
             
             label.isHidden = true
         }

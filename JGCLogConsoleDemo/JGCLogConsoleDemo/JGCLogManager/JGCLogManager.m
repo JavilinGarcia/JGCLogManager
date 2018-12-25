@@ -15,8 +15,20 @@
 #import <sys/sysctl.h>
 #import <MessageUI/MessageUI.h>
 
+#import <sys/utsname.h>
+
+#import "Reachability.h"
+#import <CoreTelephony/CTTelephonyNetworkInfo.h>
+#import <CoreTelephony/CTCarrier.h>
+#import <SystemConfiguration/CaptiveNetwork.h>
+
+#define MB (1024*1024)
+#define GB (MB*1024)
+
 @interface JGCLogManager()<MFMailComposeViewControllerDelegate>
 @property (strong, nonatomic) UIViewController *logVC;
+@property (strong, nonatomic) NSMutableDictionary *infoDic;
+
 @end
 
 @implementation JGCLogManager
@@ -42,6 +54,7 @@ static JGCLogManager *sharedInstance = nil;
 
         [self removeLogFile];
         [self redirectLogToDocument];
+        [self prepareDeviceInfo];
     }
     else {
         NSLog(@"Run from Xcode: YES");
@@ -69,10 +82,12 @@ static JGCLogManager *sharedInstance = nil;
     [mailComposerVC setToRecipients:@[]];//add default recipients
     NSString *bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"];
     [mailComposerVC setSubject:[NSString stringWithFormat:@"%@ Log",bundleName]];
-    NSString *message = [NSString stringWithFormat:@"\n\n\n-----------------------------------------------\nThe log of %@ has been attached.\n-----------------------------------------------", bundleName];
+    
+    NSString *message = [self composeMail:bundleName];
+    
     [mailComposerVC setMessageBody:message isHTML:false];
     
-    //Attached
+    //Attach
     NSData *data = [[NSData alloc] initWithContentsOfFile: [[JGCLogManager sharedInstance] getLogFilePath]];
     
     if (data != nil)
@@ -81,6 +96,27 @@ static JGCLogManager *sharedInstance = nil;
     }
     
     return mailComposerVC;
+}
+
+- (NSString *)composeMail:(NSString *)bundleName
+{
+    NSString *deviceInfo = [NSString stringWithFormat:@"\n\n\n-----------------------------------------------\nDevice Info:\n\n"];
+    deviceInfo = [NSString stringWithFormat:@"%@Model: %@\nSO: %@\nJailbroken: %@\nNetwork: %@", deviceInfo, self.infoDic[@"model"], self.infoDic[@"so"], self.infoDic[@"isJailbroken"], self.infoDic[@"network"]];
+
+    NSString *diskInfo = [NSString stringWithFormat:@"\n----------------------------------------------\nDisk Info:\n\n"];
+    diskInfo = [NSString stringWithFormat:@"%@Total (formatted) space: %@\nFree space: %@\nUsed space: %@",diskInfo, self.infoDic[@"totalSpace"], self.infoDic[@"freeSpace"], self.infoDic[@"usedSpace"]];
+    diskInfo = [NSString stringWithFormat:@"%@\n-----------------------------------------------\n\n",diskInfo];
+    
+    NSString *footer = [[NSString alloc] init];
+    if (bundleName != nil)
+    {
+        footer = [NSString stringWithFormat:@"The log of %@ has been attached successfully.", bundleName];
+    } else
+    {
+        footer = [NSString stringWithFormat:@"Has not been possible to attach the log."];
+    }
+    
+    return [NSString stringWithFormat:@"%@%@%@",deviceInfo, diskInfo, footer];
 }
 
 #pragma mark - User Actions
@@ -104,7 +140,7 @@ static JGCLogManager *sharedInstance = nil;
     tv.translatesAutoresizingMaskIntoConstraints = NO;
     NSMutableArray *tvConstraints = [NSMutableArray array];
     [tvConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[tv]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(tv)]];
-    [tvConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-20-[tv]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(tv)]];
+    [tvConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-60-[tv]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(tv)]];
     
     [tv.superview addConstraints:tvConstraints];
     [self.logVC.view bringSubviewToFront:tv];
@@ -234,6 +270,8 @@ static JGCLogManager *sharedInstance = nil;
     freopen([pathForLog cStringUsingEncoding:NSASCIIStringEncoding],"a+",stderr);
     freopen([pathForLog cStringUsingEncoding:NSASCIIStringEncoding],"a+",stdin);
     freopen([pathForLog cStringUsingEncoding:NSASCIIStringEncoding],"a+",stdout);
+    
+    NSLog(@"Redirect debug log to file OK.");
 }
 
 #pragma mark - Display log from file
@@ -309,8 +347,9 @@ static JGCLogManager *sharedInstance = nil;
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSError *error;
     // check if file exists
-    if ([fileManager fileExistsAtPath: pathForLog] == YES){
+    if ([fileManager fileExistsAtPath: pathForLog] == YES) {
         [fileManager removeItemAtPath:pathForLog error:&error];
+        NSLog(@"Previous log file deleted OK.");
     }
     
     if (error) {
@@ -331,6 +370,268 @@ static JGCLogManager *sharedInstance = nil;
     }
     
     self.stringFromFile = fileContents;
+}
+
+#pragma mark - Prepare Device info
+
+- (void)prepareDeviceInfo
+{
+    self.infoDic = [[NSMutableDictionary alloc] init];
+    self.infoDic[@"model"] = [JGCLogManager deviceName];
+    self.infoDic[@"so"] = [JGCLogManager iosVersion];
+    self.infoDic[@"isJailbroken"] = ([JGCLogManager isJailbroken]) ? @"YES" : @"NO";
+    self.infoDic[@"totalSpace"] = [JGCLogManager totalDiskSpace];
+    self.infoDic[@"freeSpace"] = [JGCLogManager freeDiskSpace];
+    self.infoDic[@"usedSpace"] = [JGCLogManager usedDiskSpace];
+    self.infoDic[@"network"] = [JGCLogManager getNetworkType];
+    
+    NSLog(@"Obtaining device info OK.");
+}
+
+#pragma mark - Device Model
+
++ (NSString *)deviceName
+{
+    struct utsname systemInfo;
+    uname(&systemInfo);
+    
+    NSString *code = [NSString stringWithCString:systemInfo.machine
+                              encoding:NSUTF8StringEncoding];
+
+    static NSDictionary* deviceNamesByCode = nil;
+    
+    if (!deviceNamesByCode) {
+        
+        deviceNamesByCode = @{@"i386"      : @"Simulator",
+                              @"x86_64"    : @"Simulator",
+                              @"iPod1,1"   : @"iPod Touch",        // (Original)
+                              @"iPod2,1"   : @"iPod Touch",        // (Second Generation)
+                              @"iPod3,1"   : @"iPod Touch",        // (Third Generation)
+                              @"iPod4,1"   : @"iPod Touch",        // (Fourth Generation)
+                              @"iPod7,1"   : @"iPod Touch",        // (6th Generation)
+                              @"iPhone1,1" : @"iPhone",            // (Original)
+                              @"iPhone1,2" : @"iPhone",            // (3G)
+                              @"iPhone2,1" : @"iPhone",            // (3GS)
+                              @"iPad1,1"   : @"iPad",              // (Original)
+                              @"iPad2,1"   : @"iPad 2",            //
+                              @"iPad3,1"   : @"iPad",              // (3rd Generation)
+                              @"iPhone3,1" : @"iPhone 4",          // (GSM)
+                              @"iPhone3,3" : @"iPhone 4",          // (CDMA/Verizon/Sprint)
+                              @"iPhone4,1" : @"iPhone 4S",         //
+                              @"iPhone5,1" : @"iPhone 5",          // (model A1428, AT&T/Canada)
+                              @"iPhone5,2" : @"iPhone 5",          // (model A1429, everything else)
+                              @"iPad3,4"   : @"iPad",              // (4th Generation)
+                              @"iPad2,5"   : @"iPad Mini",         // (Original)
+                              @"iPhone5,3" : @"iPhone 5c",         // (model A1456, A1532 | GSM)
+                              @"iPhone5,4" : @"iPhone 5c",         // (model A1507, A1516, A1526 (China), A1529 | Global)
+                              @"iPhone6,1" : @"iPhone 5s",         // (model A1433, A1533 | GSM)
+                              @"iPhone6,2" : @"iPhone 5s",         // (model A1457, A1518, A1528 (China), A1530 | Global)
+                              @"iPhone7,1" : @"iPhone 6 Plus",     //
+                              @"iPhone7,2" : @"iPhone 6",          //
+                              @"iPhone8,1" : @"iPhone 6S",         //
+                              @"iPhone8,2" : @"iPhone 6S Plus",    //
+                              @"iPhone8,4" : @"iPhone SE",         //
+                              @"iPhone9,1" : @"iPhone 7",          //
+                              @"iPhone9,3" : @"iPhone 7",          //
+                              @"iPhone9,2" : @"iPhone 7 Plus",     //
+                              @"iPhone9,4" : @"iPhone 7 Plus",     //
+                              @"iPhone10,1": @"iPhone 8",          // CDMA
+                              @"iPhone10,4": @"iPhone 8",          // GSM
+                              @"iPhone10,2": @"iPhone 8 Plus",     // CDMA
+                              @"iPhone10,5": @"iPhone 8 Plus",     // GSM
+                              @"iPhone10,3": @"iPhone X",          // CDMA
+                              @"iPhone10,6": @"iPhone X",          // GSM
+                              @"iPhone11,2": @"iPhone XS",         //
+                              @"iPhone11,4": @"iPhone XS Max",     //
+                              @"iPhone11,6": @"iPhone XS Max",     // China
+                              @"iPhone11,8": @"iPhone XR",         //
+                              
+                              @"iPad4,1"   : @"iPad Air",          // 5th Generation iPad (iPad Air) - Wifi
+                              @"iPad4,2"   : @"iPad Air",          // 5th Generation iPad (iPad Air) - Cellular
+                              @"iPad4,4"   : @"iPad Mini",         // (2nd Generation iPad Mini - Wifi)
+                              @"iPad4,5"   : @"iPad Mini",         // (2nd Generation iPad Mini - Cellular)
+                              @"iPad4,7"   : @"iPad Mini",         // (3rd Generation iPad Mini - Wifi (model A1599))
+                              @"iPad6,7"   : @"iPad Pro (12.9\")", // iPad Pro 12.9 inches - (model A1584)
+                              @"iPad6,8"   : @"iPad Pro (12.9\")", // iPad Pro 12.9 inches - (model A1652)
+                              @"iPad6,3"   : @"iPad Pro (9.7\")",  // iPad Pro 9.7 inches - (model A1673)
+                              @"iPad6,4"   : @"iPad Pro (9.7\")"   // iPad Pro 9.7 inches - (models A1674 and A1675)
+                              };
+    }
+    
+    NSString* deviceName = [deviceNamesByCode objectForKey:code];
+    
+    if (!deviceName) {
+        // Not found on database. At least guess main device type from string contents:
+        
+        if ([code rangeOfString:@"iPod"].location != NSNotFound) {
+            deviceName = @"iPod Touch";
+        }
+        else if([code rangeOfString:@"iPad"].location != NSNotFound) {
+            deviceName = @"iPad";
+        }
+        else if([code rangeOfString:@"iPhone"].location != NSNotFound){
+            deviceName = @"iPhone";
+        }
+        else {
+            deviceName = @"Unknown";
+        }
+    }
+    
+    return [NSString stringWithFormat:@"%@ (%@)", deviceName, code];
+}
+
+#pragma mark - iOS Version
+
++ (NSString *)iosVersion
+{
+    NSString *version = [NSString stringWithFormat:@"%@ %@", [[UIDevice currentDevice] systemName], [[UIDevice currentDevice] systemVersion]];
+    return version;
+    
+}
+
+#pragma mark - Disk Space Methods
+
++ (NSString *)memoryFormatter:(long long)diskSpace {
+    NSString *formatted;
+    double bytes = 1.0 * diskSpace;
+    double megabytes = bytes / MB;
+    double gigabytes = bytes / GB;
+    if (gigabytes >= 1.0)
+        formatted = [NSString stringWithFormat:@"%.2f GB", gigabytes];
+    else if (megabytes >= 1.0)
+        formatted = [NSString stringWithFormat:@"%.2f MB", megabytes];
+    else
+        formatted = [NSString stringWithFormat:@"%.2f bytes", bytes];
+    
+    return formatted;
+}
+
++ (NSString *)totalDiskSpace {
+    long long space = [[[[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil] objectForKey:NSFileSystemSize] longLongValue];
+    return [self memoryFormatter:space];
+}
+
++ (NSString *)freeDiskSpace {
+    long long freeSpace = [[[[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil] objectForKey:NSFileSystemFreeSize] longLongValue];
+    return [self memoryFormatter:freeSpace];
+}
+
++ (NSString *)usedDiskSpace {
+    return [self memoryFormatter:[self usedDiskSpaceInBytes]];
+}
+
++ (CGFloat)totalDiskSpaceInBytes {
+    long long space = [[[[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil] objectForKey:NSFileSystemSize] longLongValue];
+    return space;
+}
+
++ (CGFloat)freeDiskSpaceInBytes {
+    long long freeSpace = [[[[NSFileManager defaultManager] attributesOfFileSystemForPath:NSHomeDirectory() error:nil] objectForKey:NSFileSystemFreeSize] longLongValue];
+    return freeSpace;
+}
+
++ (CGFloat)usedDiskSpaceInBytes {
+    long long usedSpace = [self totalDiskSpaceInBytes] - [self freeDiskSpaceInBytes];
+    return usedSpace;
+}
+
+#pragma mark - Jailbreak Methods
+
++ (BOOL)isJailbroken
+{
+#if !(TARGET_IPHONE_SIMULATOR)
+    // Check 1 : existence of files that are common for jailbroken devices
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/Applications/Cydia.app"] ||
+        [[NSFileManager defaultManager] fileExistsAtPath:@"/Library/MobileSubstrate/MobileSubstrate.dylib"] ||
+        [[NSFileManager defaultManager] fileExistsAtPath:@"/bin/bash"] ||
+        [[NSFileManager defaultManager] fileExistsAtPath:@"/usr/sbin/sshd"] ||
+        [[NSFileManager defaultManager] fileExistsAtPath:@"/etc/apt"] ||
+        [[NSFileManager defaultManager] fileExistsAtPath:@"/private/var/lib/apt/"] ||
+        [[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"cydia://package/com.example.package"]]) {
+                                                       return YES;
+                                                       }
+                                                       FILE *f = NULL ;
+                                                       if ((f = fopen("/bin/bash", "r")) ||
+                                                           (f = fopen("/Applications/Cydia.app", "r")) ||
+                                                           (f = fopen("/Library/MobileSubstrate/MobileSubstrate.dylib", "r")) ||
+                                                           (f = fopen("/usr/sbin/sshd", "r")) ||
+                                                           (f = fopen("/etc/apt", "r"))) {
+                                                           fclose(f);
+                                                           return YES;
+                                                       }
+                                                       fclose(f);
+                                                       // Check 2 : Reading and writing in system directories (sandbox violation)
+                                                       NSError *error;
+                                                       NSString *stringToBeWritten = @"Jailbreak Test.";
+                                                       [stringToBeWritten writeToFile:@"/private/jailbreak.txt" atomically:YES
+                                                                             encoding:NSUTF8StringEncoding error:&error];
+                                                       if(error==nil){
+                                                           //Device is jailbroken
+                                                           return YES;
+                                                       } else {
+                                                           [[NSFileManager defaultManager] removeItemAtPath:@"/private/jailbreak.txt" error:nil];
+                                                       }
+#endif
+                                                       return NO;
+}
+
+#pragma mark - Network
+
++ (NSString *)getNetworkType
+{
+    Reachability *reachability = [Reachability reachabilityForInternetConnection];
+    [reachability startNotifier];
+    
+    NetworkStatus status = [reachability currentReachabilityStatus];
+    
+    NSString *networkType = [[NSString alloc] init];
+    
+    if(status == NotReachable)
+    {
+        //No internet
+        NSLog(@"none");
+        networkType = @"None";
+    }
+    else if (status == ReachableViaWiFi)
+    {
+        //WiFi
+        NSLog(@"Wifi");
+        networkType = @"Wifi";
+    }
+    else if (status == ReachableViaWWAN)
+    {
+        NSLog(@"WWAN");
+        
+        //connection type
+        CTTelephonyNetworkInfo *netinfo = [[CTTelephonyNetworkInfo alloc] init];
+        NSString *carrier = [[netinfo subscriberCellularProvider] carrierName];
+        
+        if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyGPRS]) {
+            networkType = [NSString stringWithFormat:@"%@ - 2G (GPRS)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyEdge]) {
+            networkType = [NSString stringWithFormat:@"%@ - 2G (EDGE)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyWCDMA]) {
+            networkType = [NSString stringWithFormat:@"%@ - 3G (WCDMA)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyHSDPA]) {
+            networkType = [NSString stringWithFormat:@"%@ - 3G (HSDPA)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyHSUPA]) {
+            networkType = [NSString stringWithFormat:@"%@ - 3G (HSUPA)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyCDMA1x]) {
+            networkType = [NSString stringWithFormat:@"%@ - 2G (CDMA1x)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyCDMAEVDORev0]) {
+            networkType = [NSString stringWithFormat:@"%@ - 3G (CDMAEVDORev0)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyCDMAEVDORevA]) {
+            networkType = [NSString stringWithFormat:@"%@ - 3G (CDMAEVDORevA)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyCDMAEVDORevB]) {
+            networkType = [NSString stringWithFormat:@"%@ - 3G (CDMAEVDORevB)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyeHRPD]) {
+            networkType = [NSString stringWithFormat:@"%@ - 3G (HRPD)", carrier];
+        } else if ([netinfo.currentRadioAccessTechnology isEqualToString:CTRadioAccessTechnologyLTE]) {
+            networkType = [NSString stringWithFormat:@"%@ - 4G (LTE)", carrier];
+        }        
+    }
+    
+    return networkType;
 }
 
 @end
