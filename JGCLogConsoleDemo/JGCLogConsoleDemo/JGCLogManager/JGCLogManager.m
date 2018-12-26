@@ -85,10 +85,13 @@ static JGCLogManager *sharedInstance = nil;
 
 - (UIButton *)createConsoleButton
 {
-    UIButton *button = [[UIButton alloc]initWithFrame:CGRectMake(0, 0, 100.0, 50.0)];
-    [button setBackgroundColor:[UIColor redColor]];
+    UIButton *button = [[UIButton alloc]initWithFrame:CGRectMake(0, 0, 30.0, 30.0)];
+    [button setBackgroundColor:[UIColor clearColor]];
     [button setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [button setTitle:@"LOG" forState:UIControlStateNormal];
+//    [button setTitle:@"LOG" forState:UIControlStateNormal];
+    UIImage *image = [UIImage imageNamed:@"logIcon.png" inBundle:[NSBundle bundleForClass:self.class] compatibleWithTraitCollection:nil];
+    [button setImage:image forState:UIControlStateNormal];
+    
     button.translatesAutoresizingMaskIntoConstraints = NO;
     [button addTarget:self action:@selector(logButtonTapped) forControlEvents:UIControlEventTouchUpInside];
     
@@ -516,19 +519,15 @@ static JGCLogManager *sharedInstance = nil;
     if(status == NotReachable)
     {
         //No internet
-        NSLog(@"none");
         networkType = @"None";
     }
     else if (status == ReachableViaWiFi)
     {
         //WiFi
-        NSLog(@"Wifi");
         networkType = @"Wifi";
     }
     else if (status == ReachableViaWWAN)
     {
-        NSLog(@"WWAN");
-        
         //connection type
         CTTelephonyNetworkInfo *netinfo = [[CTTelephonyNetworkInfo alloc] init];
         NSString *carrier = [[netinfo subscriberCellularProvider] carrierName];
@@ -565,15 +564,13 @@ static JGCLogManager *sharedInstance = nil;
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central
 {
-    NSLog(@"centralManager.state - %ld",(long)central.state);
-    
     switch (central.state) {
-        case CBManagerStateUnknown: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnknown");break;
-        case CBManagerStateResetting: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateResetting");break;
-        case CBManagerStateUnsupported: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnsupported");break;
-        case CBManagerStateUnauthorized: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnauthorized");break;
-        case CBManagerStatePoweredOff: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStatePoweredOff");break;
-        case CBManagerStatePoweredOn: self.infoDic[@"isBluetoothON"] = @"YES"; NSLog(@"centralManager.state - CBManagerStatePoweredOn");break;
+        case CBManagerStateUnknown: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnknown - %ld",(long)central.state);break;
+        case CBManagerStateResetting: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateResetting - %ld",(long)central.state);break;
+        case CBManagerStateUnsupported: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnsupported - %ld",(long)central.state);break;
+        case CBManagerStateUnauthorized: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnauthorized - %ld",(long)central.state);break;
+        case CBManagerStatePoweredOff: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStatePoweredOff - %ld",(long)central.state);break;
+        case CBManagerStatePoweredOn: self.infoDic[@"isBluetoothON"] = @"YES"; NSLog(@"centralManager.state - CBManagerStatePoweredOn - %ld",(long)central.state);break;
     }
 }
 
@@ -612,35 +609,41 @@ static JGCLogManager *sharedInstance = nil;
     [tv.superview addConstraints:tvConstraints];
     [self.logVC.view bringSubviewToFront:tv];
     
-    UIButton *logButton = [[UIButton alloc]init];
-    [logButton setBackgroundColor:[UIColor redColor]];
-    [logButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [logButton setTitle:@"Volver" forState:UIControlStateNormal];
-    logButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [logButton addTarget:self action:@selector(returnButtonTapped) forControlEvents:UIControlEventTouchUpInside];
-    [self.logVC.view addSubview:logButton];
+    UIButton *backButton = [[UIButton alloc]init];
+//    [backButton setBackgroundColor:[UIColor redColor]];
+//    [backButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+//    [logButton setTitle:@"Volver" forState:UIControlStateNormal];
+    UIImage *backImage = [UIImage imageNamed:@"backIcon.png" inBundle:[NSBundle bundleForClass:self.class] compatibleWithTraitCollection:nil];
+    [backButton setImage:backImage forState:UIControlStateNormal];
+    
+    backButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [backButton addTarget:self action:@selector(returnButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+    [self.logVC.view addSubview:backButton];
     
     NSMutableArray *constraints = [NSMutableArray array];
-    [constraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[logButton]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(logButton)]];
-    [constraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[logButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(logButton)]];
-    [constraints addObject:[NSLayoutConstraint constraintWithItem:logButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1.0 constant:50.f]];
-    [constraints addObject:[NSLayoutConstraint constraintWithItem:logButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1.0 constant:60.f]];
+    [constraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-20-[backButton]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(backButton)]];
+    [constraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[backButton]-30-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(backButton)]];
+    [constraints addObject:[NSLayoutConstraint constraintWithItem:backButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1.0 constant:30.f]];
+    [constraints addObject:[NSLayoutConstraint constraintWithItem:backButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1.0 constant:30.f]];
     
-    [logButton.superview addConstraints:constraints];
-    [self.logVC.view bringSubviewToFront:logButton];
+    [backButton.superview addConstraints:constraints];
+    [self.logVC.view bringSubviewToFront:backButton];
     
     UIButton *mailButton = [[UIButton alloc]init];
-    [mailButton setBackgroundColor:[UIColor blueColor]];
-    [mailButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [mailButton setTitle:@"Mail" forState:UIControlStateNormal];
+//    [mailButton setBackgroundColor:[UIColor blueColor]];
+//    [mailButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+//    [mailButton setTitle:@"Mail" forState:UIControlStateNormal];
+    UIImage *mailImage = [UIImage imageNamed:@"mailIcon.png" inBundle:[NSBundle bundleForClass:self.class] compatibleWithTraitCollection:nil];
+    [mailButton setImage:mailImage forState:UIControlStateNormal];
+    
     mailButton.translatesAutoresizingMaskIntoConstraints = NO;
     [mailButton addTarget:self action:@selector(mailButtonTapped) forControlEvents:UIControlEventTouchUpInside];
     [self.logVC.view addSubview:mailButton];
     NSMutableArray *mailConstraints = [NSMutableArray array];
-    [mailConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[mailButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(mailButton)]];
-    [mailConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[mailButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(mailButton)]];
-    [mailConstraints addObject:[NSLayoutConstraint constraintWithItem:mailButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1.0 constant:50.f]];
-    [mailConstraints addObject:[NSLayoutConstraint constraintWithItem:mailButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1.0 constant:50.f]];
+    [mailConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[mailButton]-20-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(mailButton)]];
+    [mailConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[mailButton]-30-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(mailButton)]];
+    [mailConstraints addObject:[NSLayoutConstraint constraintWithItem:mailButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1.0 constant:30.f]];
+    [mailConstraints addObject:[NSLayoutConstraint constraintWithItem:mailButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1.0 constant:30.f]];
     
     [mailButton.superview addConstraints:mailConstraints];
     [self.logVC.view bringSubviewToFront:mailButton];

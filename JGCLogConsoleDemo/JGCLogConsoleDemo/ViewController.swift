@@ -24,10 +24,10 @@ class ViewController: UIViewController, JGCLogConsoleDelegate {
             view.addSubview(consoleButton)
 
             let constraints = NSMutableArray()
-            constraints.addObjects(from: NSLayoutConstraint.constraints(withVisualFormat: "H:|-10-[consoleButton]", options: NSLayoutConstraint.FormatOptions(rawValue:0), metrics: nil, views:["consoleButton":consoleButton]))
-            constraints.addObjects(from: NSLayoutConstraint.constraints(withVisualFormat: "V:[consoleButton]-10-|" , options: NSLayoutConstraint.FormatOptions(rawValue:0), metrics: nil, views: ["consoleButton":consoleButton]))
-            constraints.add(NSLayoutConstraint.init(item: consoleButton, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .height, multiplier: 1.0, constant: 50.0))
-            constraints.add(NSLayoutConstraint.init(item: consoleButton, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .width, multiplier: 1.0, constant: 100.0))
+            constraints.addObjects(from: NSLayoutConstraint.constraints(withVisualFormat: "H:|-20-[consoleButton]", options: NSLayoutConstraint.FormatOptions(rawValue:0), metrics: nil, views:["consoleButton":consoleButton]))
+            constraints.addObjects(from: NSLayoutConstraint.constraints(withVisualFormat: "V:[consoleButton]-20-|" , options: NSLayoutConstraint.FormatOptions(rawValue:0), metrics: nil, views: ["consoleButton":consoleButton]))
+            constraints.add(NSLayoutConstraint.init(item: consoleButton, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .height, multiplier: 1.0, constant: 35.0))
+            constraints.add(NSLayoutConstraint.init(item: consoleButton, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .width, multiplier: 1.0, constant: 35.0))
 
             consoleButton.superview?.addConstraints(constraints as! [NSLayoutConstraint])
 
@@ -39,21 +39,17 @@ class ViewController: UIViewController, JGCLogConsoleDelegate {
         }
         
         print("viewDidLoad()")
-        print("adsfjalfdsñ ñalsdkfjña sldfjkañ sl\nafldsjasdflzxkja")
-        print("adsfjalfdsñ ñalsdkfjña sldfjkañ sl\nafldsjasdflzxkja")
+        print("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         print("viewWillAppear()")
-        print("adsfjalfdsñ ñalsdkfjña sldfjkañ sl\nafldsjasdflzxkja")
-        print("adsfjalfdsñ ñalsdkfjña sldfjkañ sl\nafldsjasdflzxkja")
+        print("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
     }
     
     // MARK: - JGCLogConsoleDelegate
     func navigate(toLogConsoleViewController logConsoleViewController: UIViewController!) {
         self.present(logConsoleViewController, animated: true, completion: nil)
     }
-
 }
-
