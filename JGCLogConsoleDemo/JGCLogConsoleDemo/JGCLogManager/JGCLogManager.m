@@ -6,6 +6,7 @@
 //  Copyright © 2017 Javier Garcia Castro. All rights reserved.
 //
 
+//redirenction log imports
 #import "JGCLogManager.h"
 #import <Foundation/Foundation.h>
 #import <assert.h>
@@ -14,14 +15,13 @@
 #import <unistd.h>
 #import <sys/sysctl.h>
 #import <MessageUI/MessageUI.h>
-
 #import <sys/utsname.h>
-
+//network imports
 #import "Reachability.h"
 #import <CoreTelephony/CTTelephonyNetworkInfo.h>
 #import <CoreTelephony/CTCarrier.h>
 #import <SystemConfiguration/CaptiveNetwork.h>
-
+//BLE imports
 #import <CoreBluetooth/CoreBluetooth.h>
 
 #define MB (1024*1024)
@@ -30,7 +30,8 @@
 @interface JGCLogManager()<MFMailComposeViewControllerDelegate, CBCentralManagerDelegate>
 @property (strong, nonatomic) UIViewController *logVC;
 @property (strong, nonatomic) NSMutableDictionary *infoDic;
-@property (nonatomic, strong) CBCentralManager *bluetoothManager;
+@property (strong, nonatomic) CBCentralManager *bluetoothManager;
+
 @end
 
 @implementation JGCLogManager
@@ -60,6 +61,8 @@ static JGCLogManager *sharedInstance = nil;
         
         self.bluetoothManager = [[CBCentralManager alloc] initWithDelegate:self queue:nil];
         NSLog(@"BLE start monitoring...");
+        
+        [self startAppLifecycleMonitoring];
     }
     else {
         NSLog(@"Run from Xcode: YES");
@@ -67,6 +70,18 @@ static JGCLogManager *sharedInstance = nil;
 }
 
 #pragma mark - Private Methods
+
+- (void)startAppLifecycleMonitoring
+{
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidEnterBackground) name:UIApplicationDidEnterBackgroundNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillEnterForeground) name:UIApplicationWillEnterForegroundNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appDidBecomeActive) name:UIApplicationDidBecomeActiveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appReceiveMemoryWarning) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillResignActive) name:UIApplicationWillResignActiveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillTerminate) name:UIApplicationWillTerminateNotification object:nil];
+    
+    NSLog(@"App life cycle start monitoring...");
+}
 
 - (UIButton *)createConsoleButton
 {
@@ -122,99 +137,6 @@ static JGCLogManager *sharedInstance = nil;
     }
     
     return [NSString stringWithFormat:@"%@%@%@",deviceInfo, diskInfo, footer];
-}
-
-#pragma mark - User Actions
-
-- (void)logButtonTapped
-{
-    NSLog(@"Log button tapped");
-    self.logVC = [[UIViewController alloc]init];
-    [self.logVC.view setBackgroundColor:[UIColor blackColor]];
-    
-    UITextView *tv = [[UITextView alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.height)];
-    tv.selectable = YES;
-    tv.editable = NO;
-    [tv setFont:[UIFont fontWithName:tv.font.fontName size:8.f]];
-    [[JGCLogManager sharedInstance] readFromFile];
-    tv.text = [JGCLogManager sharedInstance].stringFromFile;
-    [tv setTextColor:[UIColor greenColor]];
-    [tv setBackgroundColor:[UIColor clearColor]];
-    [self.logVC.view addSubview:tv];
-    
-    tv.translatesAutoresizingMaskIntoConstraints = NO;
-    NSMutableArray *tvConstraints = [NSMutableArray array];
-    [tvConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[tv]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(tv)]];
-    [tvConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-60-[tv]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(tv)]];
-    
-    [tv.superview addConstraints:tvConstraints];
-    [self.logVC.view bringSubviewToFront:tv];
-    
-    UIButton *logButton = [[UIButton alloc]init];
-    [logButton setBackgroundColor:[UIColor redColor]];
-    [logButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [logButton setTitle:@"Volver" forState:UIControlStateNormal];
-    logButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [logButton addTarget:self action:@selector(returnButtonTapped) forControlEvents:UIControlEventTouchUpInside];
-    [self.logVC.view addSubview:logButton];
-    
-    NSMutableArray *constraints = [NSMutableArray array];
-    [constraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[logButton]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(logButton)]];
-    [constraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[logButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(logButton)]];
-    [constraints addObject:[NSLayoutConstraint constraintWithItem:logButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1.0 constant:50.f]];
-    [constraints addObject:[NSLayoutConstraint constraintWithItem:logButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1.0 constant:60.f]];
-    
-    [logButton.superview addConstraints:constraints];
-    [self.logVC.view bringSubviewToFront:logButton];
-    
-    UIButton *mailButton = [[UIButton alloc]init];
-    [mailButton setBackgroundColor:[UIColor blueColor]];
-    [mailButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [mailButton setTitle:@"Mail" forState:UIControlStateNormal];
-    mailButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [mailButton addTarget:self action:@selector(mailButtonTapped) forControlEvents:UIControlEventTouchUpInside];
-    [self.logVC.view addSubview:mailButton];
-    NSMutableArray *mailConstraints = [NSMutableArray array];
-    [mailConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[mailButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(mailButton)]];
-    [mailConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[mailButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(mailButton)]];
-    [mailConstraints addObject:[NSLayoutConstraint constraintWithItem:mailButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1.0 constant:50.f]];
-    [mailConstraints addObject:[NSLayoutConstraint constraintWithItem:mailButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1.0 constant:50.f]];
-    
-    [mailButton.superview addConstraints:mailConstraints];
-    [self.logVC.view bringSubviewToFront:mailButton];
-    
-    if ([self.logConsoleDelegate respondsToSelector:@selector(navigateToLogConsoleViewController:)])
-    {
-        [self.logConsoleDelegate navigateToLogConsoleViewController:self.logVC];        
-    }
-}
-
-- (void)returnButtonTapped
-{
-    [self.logVC dismissViewControllerAnimated:YES completion:nil];
-}
-
-- (void)mailButtonTapped
-{
-    NSLog(@"mailButtonTapped");
-    
-    // Prepare mail
-    if ([MFMailComposeViewController canSendMail])
-    {
-        MFMailComposeViewController *mailComposeViewController = [self configuredMailComposeViewController];
-        
-        [self returnButtonTapped];
-        
-        if ([self.logConsoleDelegate respondsToSelector:@selector(navigateToLogConsoleViewController:)])
-        {
-            [self.logConsoleDelegate navigateToLogConsoleViewController:mailComposeViewController];
-        }
-//        [self presentViewController:mailComposeViewController animated:YES completion:nil];
-    }
-    else
-    {
-        NSLog(@"Sending mail error");
-    }
 }
 
 #pragma mark - MFMailComposeViewControllerDelegate
@@ -639,7 +561,7 @@ static JGCLogManager *sharedInstance = nil;
     return networkType;
 }
 
-#pragma mark CBCentralManagerDelegate
+#pragma mark - CBCentralManagerDelegate
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central
 {
@@ -652,6 +574,108 @@ static JGCLogManager *sharedInstance = nil;
         case CBManagerStateUnauthorized: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnauthorized");break;
         case CBManagerStatePoweredOff: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStatePoweredOff");break;
         case CBManagerStatePoweredOn: self.infoDic[@"isBluetoothON"] = @"YES"; NSLog(@"centralManager.state - CBManagerStatePoweredOn");break;
+    }
+}
+
+#pragma mark - UIApplicationState Notifications
+
+- (void)appDidEnterBackground { NSLog(@"applicationDidEnterBackgroun"); }
+- (void)appWillEnterForeground { NSLog(@"applicationWillEnterForeground"); }
+- (void)appDidBecomeActive { NSLog(@"applicationDidBecomeActive"); }
+- (void)appReceiveMemoryWarning { NSLog(@"applicationDidReceiveMemoryWarning"); }
+- (void)appWillResignActive { NSLog(@"applicationWillResignActive"); }
+- (void)appWillTerminate { NSLog(@"applicationWillTerminate"); }
+
+#pragma mark - User Actions
+
+- (void)logButtonTapped
+{
+    NSLog(@"Log button tapped");
+    self.logVC = [[UIViewController alloc]init];
+    [self.logVC.view setBackgroundColor:[UIColor blackColor]];
+    
+    UITextView *tv = [[UITextView alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.height)];
+    tv.selectable = YES;
+    tv.editable = NO;
+    [tv setFont:[UIFont fontWithName:tv.font.fontName size:8.f]];
+    [[JGCLogManager sharedInstance] readFromFile];
+    tv.text = [JGCLogManager sharedInstance].stringFromFile;
+    [tv setTextColor:[UIColor greenColor]];
+    [tv setBackgroundColor:[UIColor clearColor]];
+    [self.logVC.view addSubview:tv];
+    
+    tv.translatesAutoresizingMaskIntoConstraints = NO;
+    NSMutableArray *tvConstraints = [NSMutableArray array];
+    [tvConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[tv]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(tv)]];
+    [tvConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-60-[tv]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(tv)]];
+    
+    [tv.superview addConstraints:tvConstraints];
+    [self.logVC.view bringSubviewToFront:tv];
+    
+    UIButton *logButton = [[UIButton alloc]init];
+    [logButton setBackgroundColor:[UIColor redColor]];
+    [logButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [logButton setTitle:@"Volver" forState:UIControlStateNormal];
+    logButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [logButton addTarget:self action:@selector(returnButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+    [self.logVC.view addSubview:logButton];
+    
+    NSMutableArray *constraints = [NSMutableArray array];
+    [constraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[logButton]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(logButton)]];
+    [constraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[logButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(logButton)]];
+    [constraints addObject:[NSLayoutConstraint constraintWithItem:logButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1.0 constant:50.f]];
+    [constraints addObject:[NSLayoutConstraint constraintWithItem:logButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1.0 constant:60.f]];
+    
+    [logButton.superview addConstraints:constraints];
+    [self.logVC.view bringSubviewToFront:logButton];
+    
+    UIButton *mailButton = [[UIButton alloc]init];
+    [mailButton setBackgroundColor:[UIColor blueColor]];
+    [mailButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [mailButton setTitle:@"Mail" forState:UIControlStateNormal];
+    mailButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [mailButton addTarget:self action:@selector(mailButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+    [self.logVC.view addSubview:mailButton];
+    NSMutableArray *mailConstraints = [NSMutableArray array];
+    [mailConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[mailButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(mailButton)]];
+    [mailConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[mailButton]-10-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(mailButton)]];
+    [mailConstraints addObject:[NSLayoutConstraint constraintWithItem:mailButton attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeHeight multiplier:1.0 constant:50.f]];
+    [mailConstraints addObject:[NSLayoutConstraint constraintWithItem:mailButton attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeWidth multiplier:1.0 constant:50.f]];
+    
+    [mailButton.superview addConstraints:mailConstraints];
+    [self.logVC.view bringSubviewToFront:mailButton];
+    
+    if ([self.logConsoleDelegate respondsToSelector:@selector(navigateToLogConsoleViewController:)])
+    {
+        [self.logConsoleDelegate navigateToLogConsoleViewController:self.logVC];
+    }
+}
+
+- (void)returnButtonTapped
+{
+    [self.logVC dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)mailButtonTapped
+{
+    NSLog(@"mailButtonTapped");
+    
+    // Prepare mail
+    if ([MFMailComposeViewController canSendMail])
+    {
+        MFMailComposeViewController *mailComposeViewController = [self configuredMailComposeViewController];
+        
+        [self returnButtonTapped];
+        
+        if ([self.logConsoleDelegate respondsToSelector:@selector(navigateToLogConsoleViewController:)])
+        {
+            [self.logConsoleDelegate navigateToLogConsoleViewController:mailComposeViewController];
+        }
+        //        [self presentViewController:mailComposeViewController animated:YES completion:nil];
+    }
+    else
+    {
+        NSLog(@"Sending mail error");
     }
 }
 

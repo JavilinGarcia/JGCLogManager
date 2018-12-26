@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#define NSLog(...) NSLog(@"%s %@", __PRETTY_FUNCTION__, [NSString stringWithFormat:__VA_ARGS__]);[JGCLogManager sharedInstance].logConsole = [NSString stringWithFormat:@"%@ %@",[JGCLogManager sharedInstance].logConsole,[NSString stringWithFormat:__VA_ARGS__]];fflush(stdout);setlinebuf(stdout)
+#define NSLog(...) NSLog(@"\n--------------------------------------------------------------------------------------------\n%s %@\n--------------------------------------------------------------------------------------------\n", __PRETTY_FUNCTION__, [NSString stringWithFormat:__VA_ARGS__]);[JGCLogManager sharedInstance].logConsole = [NSString stringWithFormat:@"%@ %@",[JGCLogManager sharedInstance].logConsole,[NSString stringWithFormat:__VA_ARGS__]];fflush(stdout);setlinebuf(stdout)
 
 @protocol JGCLogConsoleDelegate <NSObject>
 @optional
@@ -45,5 +45,5 @@
 + (CGFloat)usedDiskSpaceInBytes;
 
 + (NSString *)getNetworkType;
-- (BOOL)isBluetoothEnabled;
+
 @end
