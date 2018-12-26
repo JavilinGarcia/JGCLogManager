@@ -1,5 +1,5 @@
 
-![picture](iogIcon.png)
+![Scheme](iogIcon.png)
 
 # JGCLogManager
 
