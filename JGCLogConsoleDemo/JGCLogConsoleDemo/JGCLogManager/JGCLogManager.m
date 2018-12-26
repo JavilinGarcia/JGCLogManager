@@ -22,13 +22,15 @@
 #import <CoreTelephony/CTCarrier.h>
 #import <SystemConfiguration/CaptiveNetwork.h>
 
+#import <CoreBluetooth/CoreBluetooth.h>
+
 #define MB (1024*1024)
 #define GB (MB*1024)
 
-@interface JGCLogManager()<MFMailComposeViewControllerDelegate>
+@interface JGCLogManager()<MFMailComposeViewControllerDelegate, CBCentralManagerDelegate>
 @property (strong, nonatomic) UIViewController *logVC;
 @property (strong, nonatomic) NSMutableDictionary *infoDic;
-
+@property (nonatomic, strong) CBCentralManager *bluetoothManager;
 @end
 
 @implementation JGCLogManager
@@ -55,6 +57,9 @@ static JGCLogManager *sharedInstance = nil;
         [self removeLogFile];
         [self redirectLogToDocument];
         [self prepareDeviceInfo];
+        
+        self.bluetoothManager = [[CBCentralManager alloc] initWithDelegate:self queue:nil];
+        NSLog(@"BLE start monitoring...");
     }
     else {
         NSLog(@"Run from Xcode: YES");
@@ -101,7 +106,7 @@ static JGCLogManager *sharedInstance = nil;
 - (NSString *)composeMail:(NSString *)bundleName
 {
     NSString *deviceInfo = [NSString stringWithFormat:@"\n\n\n-----------------------------------------------\nDevice Info:\n\n"];
-    deviceInfo = [NSString stringWithFormat:@"%@Model: %@\nSO: %@\nJailbroken: %@\nNetwork: %@", deviceInfo, self.infoDic[@"model"], self.infoDic[@"so"], self.infoDic[@"isJailbroken"], self.infoDic[@"network"]];
+    deviceInfo = [NSString stringWithFormat:@"%@Model: %@\nSO: %@\nJailbroken: %@\nNetwork: %@\nBluetooth enabled: %@", deviceInfo, self.infoDic[@"model"], self.infoDic[@"so"], self.infoDic[@"isJailbroken"], self.infoDic[@"network"], self.infoDic[@"isBluetoothON"]];
 
     NSString *diskInfo = [NSString stringWithFormat:@"\n----------------------------------------------\nDisk Info:\n\n"];
     diskInfo = [NSString stringWithFormat:@"%@Total (formatted) space: %@\nFree space: %@\nUsed space: %@",diskInfo, self.infoDic[@"totalSpace"], self.infoDic[@"freeSpace"], self.infoDic[@"usedSpace"]];
@@ -632,6 +637,22 @@ static JGCLogManager *sharedInstance = nil;
     }
     
     return networkType;
+}
+
+#pragma mark CBCentralManagerDelegate
+
+- (void)centralManagerDidUpdateState:(CBCentralManager *)central
+{
+    NSLog(@"centralManager.state - %ld",(long)central.state);
+    
+    switch (central.state) {
+        case CBManagerStateUnknown: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnknown");break;
+        case CBManagerStateResetting: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateResetting");break;
+        case CBManagerStateUnsupported: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnsupported");break;
+        case CBManagerStateUnauthorized: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStateUnauthorized");break;
+        case CBManagerStatePoweredOff: self.infoDic[@"isBluetoothON"] = @"NO"; NSLog(@"centralManager.state - CBManagerStatePoweredOff");break;
+        case CBManagerStatePoweredOn: self.infoDic[@"isBluetoothON"] = @"YES"; NSLog(@"centralManager.state - CBManagerStatePoweredOn");break;
+    }
 }
 
 @end

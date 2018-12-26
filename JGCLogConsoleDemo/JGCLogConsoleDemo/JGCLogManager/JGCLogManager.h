@@ -45,5 +45,5 @@
 + (CGFloat)usedDiskSpaceInBytes;
 
 + (NSString *)getNetworkType;
-
+- (BOOL)isBluetoothEnabled;
 @end
