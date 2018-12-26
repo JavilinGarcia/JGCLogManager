@@ -1,3 +1,4 @@
+
 ![picture](iogIcon.png)
 
 # JGCLogManager
